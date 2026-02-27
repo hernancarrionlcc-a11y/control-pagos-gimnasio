@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Control - Gimnasio</title>
+    <style>
+        body { font-family: sans-serif; background: #f4f4f9; padding: 20px; color: #333; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        h2 { color: #2c3e50; margin-top: 0; }
+        input, select, button { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        button { background: #27ae60; color: white; border: none; font-weight: bold; cursor: pointer; }
+        button:hover { background: #219150; }
+        .btn-consulta { background: #2980b9; }
+        .status-box { padding: 15px; border-radius: 5px; text-align: center; font-weight: bold; display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h2>Añadir Nuevo Cliente</h2>
+        <input type="text" id="nuevoNombre" placeholder="Nombre completo">
+        <input type="text" id="nuevoPlan" placeholder="Plan (Ej: Musculación)">
+        <input type="number" id="nuevoMonto" placeholder="Monto cuota">
+        <button onclick="ejecutarAccion('crear')">Guardar Cliente</button>
+    </div>
+
+    <div class="card">
+        <h2>Registrar Pago</h2>
+        <input type="text" id="pagoId" placeholder="ID del Cliente">
+        <button onclick="ejecutarAccion('pagar')">Confirmar Pago</button>
+    </div>
+
+    <div class="card">
+        <h2>Consulta Rápida</h2>
+        <input type="text" id="consultaId" placeholder="ID del Cliente">
+        <button class="btn-consulta" onclick="ejecutarAccion('consultar')">Ver Estado</button>
+        <div id="resultadoConsulta" class="status-box"></div>
+    </div>
+
+    <script>
+        const URL_API = "https://script.google.com/macros/s/AKfycbzZpao6HuSljEilq_A-a5483l6oxqc_OEHy6jWz-Eay2ieJkJ7QzL6zaJfBtbSoIzho3A/exec"; // <--- PEGA AQUÍ TU URL DE GOOGLE APPS SCRIPT
+
+        async function ejecutarAccion(tipo) {
+            const datos = {
+                accion: tipo,
+                id: document.getElementById(tipo === 'crear' ? 'nuevoNombre' : (tipo === 'pagar' ? 'pagoId' : 'consultaId')).value,
+                nombre: document.getElementById('nuevoNombre').value,
+                plan: document.getElementById('nuevoPlan').value,
+                monto: document.getElementById('nuevoMonto').value
+            };
+
+            try {
+        // Añadimos el modo 'no-cors' o manejamos la redirección
+        const response = await fetch(URL_API, {
+            method: 'POST',
+            mode: 'no-cors', // Prueba añadiendo esto si sigue fallando
+            body: JSON.stringify(datos),
+            headers: {
+                'Content-Type': 'text/plain' // Google prefiere text/plain para evitar bloqueos CORS
+            }
+        });
+
+        alert("Operación enviada. Revisa tu Excel."); 
+        // Nota: Con 'no-cors' no podrás leer la respuesta de consulta, 
+        // pero 'crear' y 'pagar' funcionarán perfecto.
+        } catch (error) {
+            console.error(error);
+            alert("Error de conexión. Verifica la URL de la API.");
+        }
+    }
+    </script>
+</body>
+</html>
