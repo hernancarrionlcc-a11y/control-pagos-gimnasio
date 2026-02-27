@@ -4,15 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel de Control - Gimnasio</title>
+    <meta name="mobile-web-app-capable" content="yes">
+    
     <style>
-        body { font-family: sans-serif; background: #f4f4f9; padding: 20px; color: #333; }
+        body { font-family: sans-serif; background: #f4f4f9; padding: 20px; color: #333; max-width: 600px; margin: auto; }
         .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
         h2 { color: #2c3e50; margin-top: 0; }
-        input, select, button { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        input, button { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 16px; }
         button { background: #27ae60; color: white; border: none; font-weight: bold; cursor: pointer; }
         button:hover { background: #219150; }
-        .btn-consulta { background: #2980b9; }
-        .status-box { padding: 15px; border-radius: 5px; text-align: center; font-weight: bold; display: none; }
+        .btn-consulta { background: #2980b9; } .btn-consulta:hover { background: #1c5980; }
+        .btn-baja { background: #e74c3c; } .btn-baja:hover { background: #c0392b; }
+        .status-box { padding: 15px; border-radius: 5px; text-align: center; font-weight: bold; display: none; margin-top: 15px; }
+        .id-destacado { font-size: 24px; color: #d32f2f; display: block; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -22,53 +26,96 @@
         <input type="text" id="nuevoNombre" placeholder="Nombre completo">
         <input type="text" id="nuevoPlan" placeholder="Plan (Ej: Musculación)">
         <input type="number" id="nuevoMonto" placeholder="Monto cuota">
-        <button onclick="ejecutarAccion('crear')">Guardar Cliente</button>
+        <button id="btnCrear" onclick="ejecutarAccion('crear')">Guardar Cliente</button>
+        <div id="mensajeNuevoCliente" class="status-box" style="background: #d4edda; color: #155724;"></div>
     </div>
 
     <div class="card">
         <h2>Registrar Pago</h2>
         <input type="text" id="pagoId" placeholder="ID del Cliente">
-        <button onclick="ejecutarAccion('pagar')">Confirmar Pago</button>
+        <button id="btnPagar" onclick="ejecutarAccion('pagar')">Confirmar Pago</button>
     </div>
 
     <div class="card">
         <h2>Consulta Rápida</h2>
         <input type="text" id="consultaId" placeholder="ID del Cliente">
-        <button class="btn-consulta" onclick="ejecutarAccion('consultar')">Ver Estado</button>
+        <button id="btnConsultar" class="btn-consulta" onclick="ejecutarAccion('consultar')">Ver Estado</button>
         <div id="resultadoConsulta" class="status-box"></div>
     </div>
 
+    <div class="card">
+        <h2>Dar de Baja</h2>
+        <input type="text" id="bajaId" placeholder="ID del Cliente a dar de baja">
+        <button id="btnBaja" class="btn-baja" onclick="ejecutarAccion('baja')">Dar de Baja Definitiva</button>
+    </div>
+
     <script>
-        const URL_API = "https://script.google.com/macros/s/AKfycbzZpao6HuSljEilq_A-a5483l6oxqc_OEHy6jWz-Eay2ieJkJ7QzL6zaJfBtbSoIzho3A/exec"; // <--- PEGA AQUÍ TU URL DE GOOGLE APPS SCRIPT
+        // PEGA AQUÍ TU URL DE GOOGLE APPS SCRIPT
+        const URL_API = "https://script.google.com/macros/s/AKfycbzZpao6HuSljEilq_A-a5483l6oxqc_OEHy6jWz-Eay2ieJkJ7QzL6zaJfBtbSoIzho3A/exec"; 
 
         async function ejecutarAccion(tipo) {
+            let idBoton = tipo === 'crear' ? 'btnCrear' : (tipo === 'pagar' ? 'btnPagar' : (tipo === 'consultar' ? 'btnConsultar' : 'btnBaja'));
+            const btn = document.getElementById(idBoton);
+            const textoOriginal = btn.innerText;
+            btn.disabled = true;
+            btn.innerText = "Procesando...";
+
+            let idIngresado = "";
+            if (tipo === 'pagar') idIngresado = document.getElementById('pagoId').value;
+            if (tipo === 'consultar') idIngresado = document.getElementById('consultaId').value;
+            if (tipo === 'baja') idIngresado = document.getElementById('bajaId').value;
+
             const datos = {
                 accion: tipo,
-                id: document.getElementById(tipo === 'crear' ? 'nuevoNombre' : (tipo === 'pagar' ? 'pagoId' : 'consultaId')).value,
+                id: idIngresado,
                 nombre: document.getElementById('nuevoNombre').value,
                 plan: document.getElementById('nuevoPlan').value,
                 monto: document.getElementById('nuevoMonto').value
             };
 
             try {
-        // Añadimos el modo 'no-cors' o manejamos la redirección
-        const response = await fetch(URL_API, {
-            method: 'POST',
-            mode: 'no-cors', // Prueba añadiendo esto si sigue fallando
-            body: JSON.stringify(datos),
-            headers: {
-                'Content-Type': 'text/plain' // Google prefiere text/plain para evitar bloqueos CORS
+                const response = await fetch(URL_API, { method: 'POST', body: JSON.stringify(datos) });
+                const res = await response.json();
+                
+                if (res.error) {
+                    alert("Error en el servidor: " + res.error);
+                    return;
+                }
+                
+                if (tipo === 'crear') {
+                    alert(`¡Cliente guardado con éxito!\n\nEl ID asignado es: ${res.idAsignado}`);
+                    const cajaMensaje = document.getElementById('mensajeNuevoCliente');
+                    cajaMensaje.style.display = 'block';
+                    cajaMensaje.innerHTML = `Cliente: ${datos.nombre} <br> <span class="id-destacado">ID ASIGNADO: ${res.idAsignado}</span>`;
+                    document.getElementById('nuevoNombre').value = ""; document.getElementById('nuevoPlan').value = ""; document.getElementById('nuevoMonto').value = "";
+                } 
+                else if (tipo === 'pagar' || tipo === 'baja') {
+                    alert(res.mensaje);
+                    if (tipo === 'pagar') document.getElementById('pagoId').value = "";
+                    if (tipo === 'baja') document.getElementById('bajaId').value = "";
+                }
+                else if (tipo === 'consultar') {
+                    const box = document.getElementById('resultadoConsulta');
+                    box.style.display = 'block';
+                    
+                    if (res.estado === "Desconocido") {
+                         box.innerText = res.mensaje;
+                         box.style.background = '#f8d7da'; box.style.color = '#721c24';
+                    } else {
+                         box.innerText = `Estado: ${res.estado} - Vence: ${res.vencimiento}`;
+                         if (res.estado === 'Pagado') { box.style.background = '#d4edda'; box.style.color = '#155724'; }
+                         else if (res.estado === 'Inactivo') { box.style.background = '#e0e0e0'; box.style.color = '#333333'; }
+                         else { box.style.background = '#f8d7da'; box.style.color = '#721c24'; }
+                    }
+                }
+            } catch (error) {
+                console.error("Error capturado:", error);
+                alert("Fallo de conexión. Asegúrate de haber pegado la URL correcta en el código HTML.");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = textoOriginal;
             }
-        });
-
-        alert("Operación enviada. Revisa tu Excel."); 
-        // Nota: Con 'no-cors' no podrás leer la respuesta de consulta, 
-        // pero 'crear' y 'pagar' funcionarán perfecto.
-        } catch (error) {
-            console.error(error);
-            alert("Error de conexión. Verifica la URL de la API.");
         }
-    }
     </script>
 </body>
 </html>
